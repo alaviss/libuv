@@ -23,37 +23,40 @@
 
 #include <OS.h>
 
-/* (c) 2001, 2002, François Revol (mmu_man), released under the MIT license.
+/* The algorithm below has been adapted from Haiku's renice tool
  *
- * The algorithm for conversion between BeOS priority and Unix nice was taken
- * from Haiku's renice tool.
+ * (c) 2001, 2002, François Revol (mmu_man), released under the MIT license.
  *
- * BeOs priorities:
- * Realtime  High  Default  Low Prio
- * 120       99    10       1 (0 only for idle_thread)
+ * BeOS priorities:
+ * Realtime  Highest  Default  Low
+ * 120       99       10       1
  *
- * UNIX nice:
- *           -20    0       19
+ * libuv priorities:
+ *           -20      0       19
  */
 
-#define NZERO 0
-
-#define BZERO B_NORMAL_PRIORITY
-#define BMIN  (B_REAL_TIME_DISPLAY_PRIORITY - 1)
-#define BMAX  1
-
-/* returns an equivalent UNIX nice for a given BeOS priority. */
-static int priority_beos_to_unix(int priority) {
-  if (priority > BZERO)
-    return NZERO - ((priority - BZERO) * NZERO) / (BMIN - BZERO);
-  return NZERO + ((BZERO - priority) * (NZERO - 1)) / (BZERO - BMAX);
+static int beos_to_uv_priority(int priority) {
+  if (priority > B_NORMAL_PRIORITY)
+    return UV_PRIORITY_NORMAL -
+      (priority - B_NORMAL_PRIORITY) *
+      (UV_PRIORITY_NORMAL - UV_PRIORITY_HIGHEST) /
+      (B_REAL_TIME_PRIORITY - B_NORMAL_PRIORITY);
+  return UV_PRIORITY_NORMAL +
+    (priority - B_NORMAL_PRIORITY) *
+    (UV_PRIORITY_LOW - UV_PRIORITY_NORMAL) /
+    (B_NORMAL_PRIORITY - B_LOWEST_ACTIVE_PRIORITY);
 }
 
-/* returns an equivalent BeOS priority for a given UNIX nice. */
-static int priority_unix_to_beos(int priority) {
-  if (priority > NZERO)
-    return BZERO - ((priority - NZERO) * (BZERO - BMAX)) / (NZERO - 1);
-  return BZERO + ((NZERO - priority) * (BMIN - BZERO)) / (NZERO);
+static int uv_to_beos_priority(int priority) {
+  if (priority < UV_PRIORITY_NORMAL)
+    return B_NORMAL_PRIORITY +
+      (priority - UV_PRIORITY_NORMAL) *
+      (B_REAL_TIME_DISPLAY_PRIORITY - B_NORMAL_PRIORITY) /
+      (UV_PRIORITY_NORMAL - UV_PRIORITY_HIGHEST);
+  return B_NORMAL_PRIORITY +
+    (priority - UV_PRIORITY_NORMAL) *
+    (B_NORMAL_PRIORITY - B_LOWEST_ACTIVE_PRIORITY) /
+    (UV_PRIORITY_LOW - UV_PRIORITY_NORMAL);
 }
 
 int uv_os_getpriority(uv_pid_t pid, int* priority) {
@@ -67,11 +70,13 @@ int uv_os_getpriority(uv_pid_t pid, int* priority) {
   if (status != B_OK)
     return UV__ERR(status);
 
-  *priority = priority_beos_to_unix(tinfo.priority)
+  *priority = priority_beos_to_unix(tinfo.priority);
   return 0;
 }
 
 int uv_os_setpriority(uv_pid_t pid, int priority) {
+  status_t status;
+
   if (priority < UV_PRIORITY_HIGHEST || priority > UV_PRIORITY_LOW)
     return UV_EINVAL;
 
