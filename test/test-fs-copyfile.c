@@ -25,7 +25,8 @@
 #include <fcntl.h>
 
 #if defined(__unix__) || defined(__POSIX__) || \
-    defined(__APPLE__) || defined(_AIX) || defined(__MVS__)
+    defined(__APPLE__) || defined(_AIX) || defined(__MVS__) || \
+    defined(__HAIKU__)
 #include <unistd.h> /* unlink, etc. */
 #else
 # include <direct.h>
