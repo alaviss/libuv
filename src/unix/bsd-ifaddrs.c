@@ -31,6 +31,10 @@
 #include <net/if_dl.h>
 #endif
 
+#if defined(__HAIKU__)
+#define IFF_RUNNING IFF_LINK
+#endif
+
 static int uv__ifaddr_exclude(struct ifaddrs *ent, int exclude_type) {
   if (!((ent->ifa_flags & IFF_UP) && (ent->ifa_flags & IFF_RUNNING)))
     return 1;
