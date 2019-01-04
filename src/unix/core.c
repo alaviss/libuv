@@ -916,7 +916,7 @@ int uv_getrusage(uv_rusage_t* rusage) {
   rusage->ru_stime.tv_sec = usage.ru_stime.tv_sec;
   rusage->ru_stime.tv_usec = usage.ru_stime.tv_usec;
 
-#if !defined(__MVS__)
+#if !defined(__MVS__) && !defined(__HAIKU__)
   rusage->ru_maxrss = usage.ru_maxrss;
   rusage->ru_ixrss = usage.ru_ixrss;
   rusage->ru_idrss = usage.ru_idrss;
@@ -1348,6 +1348,7 @@ int uv_cpumask_size(void) {
 #endif
 }
 
+#if !defined(__HAIKU__)
 int uv_os_getpriority(uv_pid_t pid, int* priority) {
   int r;
 
@@ -1374,6 +1375,7 @@ int uv_os_setpriority(uv_pid_t pid, int priority) {
 
   return 0;
 }
+#endif
 
 
 int uv__getsockpeername(const uv_handle_t* handle,

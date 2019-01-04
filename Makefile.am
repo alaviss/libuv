@@ -394,6 +394,10 @@ libuv_la_SOURCES += src/unix/bsd-ifaddrs.c \
 test_run_tests_LDFLAGS += -lutil
 endif
 
+if HAIKU
+libuv_la_SOURCES += src/unix/haiku.c
+endif
+
 if HURD
 uvinclude_HEADERS += include/uv/posix.h
 libuv_la_SOURCES += src/unix/no-fsevents.c \
