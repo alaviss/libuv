@@ -395,7 +395,9 @@ test_run_tests_LDFLAGS += -lutil
 endif
 
 if HAIKU
-libuv_la_SOURCES += src/unix/haiku.c
+libuv_la_CFLAGS += -D_BSD_SOURCE
+libuv_la_SOURCES += src/unix/bsd-ifaddrs.c \
+                    src/unix/haiku.c
 endif
 
 if HURD
