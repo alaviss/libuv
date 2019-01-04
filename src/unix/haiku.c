@@ -70,7 +70,7 @@ int uv_os_getpriority(uv_pid_t pid, int* priority) {
   if (status != B_OK)
     return UV__ERR(status);
 
-  *priority = priority_beos_to_unix(tinfo.priority);
+  *priority = beos_to_uv_priority(tinfo.priority);
   return 0;
 }
 
@@ -80,7 +80,7 @@ int uv_os_setpriority(uv_pid_t pid, int priority) {
   if (priority < UV_PRIORITY_HIGHEST || priority > UV_PRIORITY_LOW)
     return UV_EINVAL;
 
-  status = set_thread_priority(pid, priority_unix_to_beos(priority));
+  status = set_thread_priority(pid, uv_to_beos_priority(priority));
   if (status != B_OK)
     return UV__ERR(status);
 
