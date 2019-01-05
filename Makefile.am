@@ -395,6 +395,7 @@ test_run_tests_LDFLAGS += -lutil
 endif
 
 if HAIKU
+uvinclude_HEADERS += include/uv/posix.h
 libuv_la_CFLAGS += -D_BSD_SOURCE
 libuv_la_SOURCES += src/unix/bsd-ifaddrs.c \
                     src/unix/haiku.c \

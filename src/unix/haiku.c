@@ -104,7 +104,8 @@ int uv_exepath(char* buffer, size_t* size) {
   if (buffer == NULL || size == NULL || *size == 0)
     return UV_EINVAL;
 
-  status = find_path(B_APP_IMAGE_SYMBOL, B_FIND_PATH_IMAGE_PATH, NULL, buffer, size);
+  status = find_path(B_APP_IMAGE_SYMBOL, B_FIND_PATH_IMAGE_PATH, NULL, buffer,
+                     *size);
   if (status != B_OK)
     return UV__ERR(status);
 
@@ -144,7 +145,7 @@ int uv_resident_set_memory(size_t* rss) {
   status_t status;
   thread_info thread;
 
-  status = get_thread_info(find_thread(NULL), thread);
+  status = get_thread_info(find_thread(NULL), &thread);
   if (status != B_OK)
     return UV__ERR(status);
 
@@ -190,7 +191,7 @@ int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
     return UV__ERR(status);
   }
 
-  for (i = 0; i < topology_count; i++)
+  for (i = 0; i < (int)topology_count; i++)
     if (topology_infos[i].type == B_TOPOLOGY_CORE) {
       cpuspeed = topology_infos[i].data.core.default_frequency;
       break;
