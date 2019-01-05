@@ -54,7 +54,7 @@ static int uv_to_beos_priority(int priority) {
   if (priority < UV_PRIORITY_NORMAL)
     return B_NORMAL_PRIORITY +
       (priority - UV_PRIORITY_NORMAL) *
-      (B_REAL_TIME_DISPLAY_PRIORITY - B_NORMAL_PRIORITY) /
+      (B_REAL_TIME_PRIORITY - B_NORMAL_PRIORITY) /
       (UV_PRIORITY_NORMAL - UV_PRIORITY_HIGHEST);
   return B_NORMAL_PRIORITY +
     (priority - UV_PRIORITY_NORMAL) *
@@ -63,13 +63,15 @@ static int uv_to_beos_priority(int priority) {
 }
 
 int uv_os_getpriority(uv_pid_t pid, int* priority) {
+  thread_id tid;
   thread_info tinfo;
   status_t status;
 
   if (priority == NULL)
     return UV_EINVAL;
 
-  status = get_thread_info(pid, &tinfo);
+  tid = pid == 0 ? find_thread(NULL) : pid;
+  status = get_thread_info(tid, &tinfo);
   if (status != B_OK)
     return UV__ERR(status);
 
