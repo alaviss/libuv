@@ -21,6 +21,9 @@
 #include "uv.h"
 #include "internal.h"
 
+#include <string.h> /* strlen() */
+
+#include <FindDirectory.h> /* find_path() */
 #include <OS.h>
 
 /* The algorithm below has been adapted from Haiku's renice tool
@@ -85,4 +88,135 @@ int uv_os_setpriority(uv_pid_t pid, int priority) {
     return UV__ERR(status);
 
   return 0;
+}
+
+
+void uv_loadavg(double avg[3]) {
+  avg[0] = 0;
+  avg[1] = 0;
+  avg[2] = 0;
+}
+
+
+int uv_exepath(char* buffer, size_t* size) {
+  status_t status;
+
+  if (buffer == NULL || size == NULL || *size == 0)
+    return UV_EINVAL;
+
+  status = find_path(B_APP_IMAGE_SYMBOL, B_FIND_PATH_IMAGE_PATH, NULL, buffer, size);
+  if (status != B_OK)
+    return UV__ERR(status);
+
+  *size = strlen(buffer);
+
+  return 0;
+}
+
+
+uint64_t uv_get_free_memory(void) {
+  status_t status;
+  system_info sinfo;
+
+  status = get_system_info(&sinfo);
+  if (status != B_OK)
+    return 0;
+
+  return (sinfo.max_pages - sinfo.used_pages) * B_PAGE_SIZE;
+}
+
+
+uint64_t uv_get_total_memory(void) {
+  status_t status;
+  system_info sinfo;
+
+  status = get_system_info(&sinfo);
+  if (status != B_OK)
+    return 0;
+
+  return sinfo.max_pages * B_PAGE_SIZE;
+}
+
+
+int uv_resident_set_memory(size_t* rss) {
+  area_info area;
+  ssize_t cookie;
+  status_t status;
+  thread_info thread;
+
+  status = get_thread_info(find_thread(NULL), thread);
+  if (status != B_OK)
+    return UV__ERR(status);
+
+  cookie = 0;
+  *rss = 0;
+  while (get_next_area_info(thread.team, &cookie, &area) == B_OK)
+    *rss += area.ram_size;
+
+  return 0;
+}
+
+
+int uv_uptime(double* uptime) {
+  /* system_time() returns time since booting in microseconds */
+  *uptime = (double)system_time() / 1000000;
+  return 0;
+}
+
+
+int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
+  cpu_topology_node_info* topology_infos;
+  int i;
+  status_t status;
+  system_info system;
+  uint32_t topology_count;
+  uint64_t cpuspeed;
+  uv_cpu_info_t* cpu;
+
+  if (cpu_infos == NULL || count == NULL)
+    return UV_EINVAL;
+
+  status = get_cpu_topology_info(NULL, &topology_count);
+  if (status != B_OK)
+    return UV__ERR(status);
+
+  topology_infos = uv__malloc(topology_count * sizeof(cpu_topology_node_info));
+  if (topology_infos == NULL)
+    return UV_ENOMEM;
+
+  status = get_cpu_topology_info(topology_infos, &topology_count);
+  if (status != B_OK) {
+    uv__free(topology_infos);
+    return UV__ERR(status);
+  }
+
+  for (i = 0; i < topology_count; i++)
+    if (topology_infos[i].type == B_TOPOLOGY_CORE) {
+      cpuspeed = topology_infos[i].data.core.default_frequency;
+      break;
+    }
+
+  uv__free(topology_infos);
+
+  status = get_system_info(&system);
+  if (status != B_OK) {
+    return UV__ERR(status);
+  }
+
+  *cpu_infos = uv__calloc(system.cpu_count, sizeof(**cpu_infos));
+  if (*cpu_infos == NULL) {
+    return UV_ENOMEM;
+  }
+
+  *count = system.cpu_count;
+
+  /* CPU time is not exposed by Haiku, neither does the model name. */
+  for (i = 0; i < system.cpu_count; i++)
+    (*cpu_infos)[i].speed = cpuspeed;
+
+  return 0;
+}
+
+void uv_free_cpu_info(uv_cpu_info_t* cpu_infos, int count) {
+  uv__free(cpu_infos);
 }
