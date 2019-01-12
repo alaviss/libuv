@@ -26,72 +26,6 @@
 #include <FindDirectory.h> /* find_path() */
 #include <OS.h>
 
-/* The algorithm below has been adapted from Haiku's renice tool
- *
- * (c) 2001, 2002, François Revol (mmu_man), released under the MIT license.
- *
- * BeOS priorities:
- * Realtime  Highest  Default  Low
- * 120       99       10       1
- *
- * libuv priorities:
- *           -20      0       19
- */
-
-static int beos_to_uv_priority(int priority) {
-  if (priority > B_NORMAL_PRIORITY)
-    return UV_PRIORITY_NORMAL -
-      (priority - B_NORMAL_PRIORITY) *
-      (UV_PRIORITY_NORMAL - UV_PRIORITY_HIGHEST) /
-      (B_REAL_TIME_PRIORITY - B_NORMAL_PRIORITY);
-  return UV_PRIORITY_NORMAL +
-    (priority - B_NORMAL_PRIORITY) *
-    (UV_PRIORITY_LOW - UV_PRIORITY_NORMAL) /
-    (B_NORMAL_PRIORITY - B_LOWEST_ACTIVE_PRIORITY);
-}
-
-static int uv_to_beos_priority(int priority) {
-  if (priority < UV_PRIORITY_NORMAL)
-    return B_NORMAL_PRIORITY +
-      (priority - UV_PRIORITY_NORMAL) *
-      (B_REAL_TIME_PRIORITY - B_NORMAL_PRIORITY) /
-      (UV_PRIORITY_NORMAL - UV_PRIORITY_HIGHEST);
-  return B_NORMAL_PRIORITY +
-    (priority - UV_PRIORITY_NORMAL) *
-    (B_NORMAL_PRIORITY - B_LOWEST_ACTIVE_PRIORITY) /
-    (UV_PRIORITY_LOW - UV_PRIORITY_NORMAL);
-}
-
-int uv_os_getpriority(uv_pid_t pid, int* priority) {
-  thread_id tid;
-  thread_info tinfo;
-  status_t status;
-
-  if (priority == NULL)
-    return UV_EINVAL;
-
-  tid = pid == 0 ? find_thread(NULL) : pid;
-  status = get_thread_info(tid, &tinfo);
-  if (status != B_OK)
-    return UV__ERR(status);
-
-  *priority = beos_to_uv_priority(tinfo.priority);
-  return 0;
-}
-
-int uv_os_setpriority(uv_pid_t pid, int priority) {
-  status_t status;
-
-  if (priority < UV_PRIORITY_HIGHEST || priority > UV_PRIORITY_LOW)
-    return UV_EINVAL;
-
-  status = set_thread_priority(pid, uv_to_beos_priority(priority));
-  if (status != B_OK)
-    return UV__ERR(status);
-
-  return 0;
-}
-
 
 void uv_loadavg(double avg[3]) {
   avg[0] = 0;
@@ -215,7 +149,7 @@ int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
 
   /* CPU time is not exposed by Haiku, neither does the model name. */
   for (i = 0; i < (int)system.cpu_count; i++)
-    (*cpu_infos)[i].speed = cpuspeed;
+    (*cpu_infos)[i].speed = (int)(cpuspeed / 1000000);
 
   return 0;
 }

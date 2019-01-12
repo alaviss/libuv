@@ -1348,7 +1348,7 @@ int uv_cpumask_size(void) {
 #endif
 }
 
-#if !defined(__HAIKU__)
+
 int uv_os_getpriority(uv_pid_t pid, int* priority) {
   int r;
 
@@ -1375,7 +1375,6 @@ int uv_os_setpriority(uv_pid_t pid, int priority) {
 
   return 0;
 }
-#endif
 
 
 int uv__getsockpeername(const uv_handle_t* handle,

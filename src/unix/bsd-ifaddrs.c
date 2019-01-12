@@ -49,7 +49,8 @@ static int uv__ifaddr_exclude(struct ifaddrs *ent, int exclude_type) {
   if (exclude_type == UV__EXCLUDE_IFPHYS)
     return (ent->ifa_addr->sa_family != AF_LINK);
 #endif
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__DragonFly__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__DragonFly__) || \
+    defined(__HAIKU__)
   /*
    * On BSD getifaddrs returns information related to the raw underlying
    * devices.  We're not interested in this information.
@@ -60,7 +61,7 @@ static int uv__ifaddr_exclude(struct ifaddrs *ent, int exclude_type) {
   if (ent->ifa_addr->sa_family != PF_INET &&
       ent->ifa_addr->sa_family != PF_INET6)
     return 1;
-#elif defined(__OpenBSD__) || defined(__HAIKU__)
+#elif defined(__OpenBSD__)
   if (ent->ifa_addr->sa_family != PF_INET)
     return 1;
 #endif
