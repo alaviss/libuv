@@ -52,7 +52,7 @@ int uv_pipe_bind(uv_pipe_t* handle, const char* name) {
   name_len = strlen(name);
 
   if (name_len > sizeof(saddr.sun_path) - 1)
-    return -ENAMETOOLONG;
+    return UV_ENAMETOOLONG;
 
   /* Already bound? */
   if (uv__stream_fd(handle) >= 0)
