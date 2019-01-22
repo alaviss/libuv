@@ -307,6 +307,10 @@ if AIX
 test_run_tests_CFLAGS += -D_ALL_SOURCE -D_XOPEN_SOURCE=500 -D_LINUX_SOURCE_COMPAT
 endif
 
+if HAIKU
+test_run_tests_CFLAGS += -D_BSD_SOURCE
+endif
+
 if LINUX
 test_run_tests_CFLAGS += -D_GNU_SOURCE
 endif
