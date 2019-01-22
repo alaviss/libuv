@@ -1681,6 +1681,8 @@ TEST_IMPL(fs_chown) {
   uv_run(loop, UV_RUN_DEFAULT);
   ASSERT(fchown_cb_count == 1);
 
+#ifndef __HAIKU__
+  /* Haiku doesn't support hardlink */
   /* sync link */
   r = uv_fs_link(NULL, &req, "test_file", "test_file_link", NULL);
   ASSERT(r == 0);
@@ -1698,6 +1700,7 @@ TEST_IMPL(fs_chown) {
   ASSERT(r == 0);
   uv_run(loop, UV_RUN_DEFAULT);
   ASSERT(lchown_cb_count == 1);
+#endif
 
   /* Close file */
   r = uv_fs_close(NULL, &req, file, NULL);
