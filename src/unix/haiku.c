@@ -21,7 +21,7 @@
 #include "uv.h"
 #include "internal.h"
 
-#include <string.h> /* strlen() */
+#include <string.h> /* strlcpy() */
 
 #include <FindDirectory.h> /* find_path() */
 #include <OS.h>
@@ -35,17 +35,22 @@ void uv_loadavg(double avg[3]) {
 
 
 int uv_exepath(char* buffer, size_t* size) {
+  char abspath[B_PATH_NAME_LENGTH];
   status_t status;
+  size_t abspath_len;
 
   if (buffer == NULL || size == NULL || *size == 0)
     return UV_EINVAL;
 
   status = find_path(B_APP_IMAGE_SYMBOL, B_FIND_PATH_IMAGE_PATH, NULL, buffer,
-                     *size);
+                     sizeof(abspath));
   if (status != B_OK)
     return UV__ERR(status);
 
-  *size = strlen(buffer);
+  abspath_len = strlcpy(buffer, abspath, *size);
+  *size -= 1;
+  if (*size > abspath_len)
+    *size = abspath_len;
 
   return 0;
 }
