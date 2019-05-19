@@ -26,6 +26,7 @@
 #include <FindDirectory.h> /* find_path() */
 #include <OS.h>
 
+#include <private/shared/cpu_type.h>
 
 void uv_loadavg(double avg[3]) {
   avg[0] = 0;
@@ -112,7 +113,8 @@ int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
   status_t status;
   system_info system;
   uint32_t topology_count;
-  uint64_t cpuspeed;
+  uv_cpu_info_t* cpu_info;
+  char cpuStr[2048];
 
   if (cpu_infos == NULL || count == NULL)
     return UV_EINVAL;
@@ -131,12 +133,30 @@ int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
     return UV__ERR(status);
   }
 
-  cpuspeed = 0;
-  for (i = 0; i < (int)topology_count; i++)
-    if (topology_infos[i].type == B_TOPOLOGY_CORE) {
-      cpuspeed = topology_infos[i].data.core.default_frequency;
+  enum cpu_platform platform = B_CPU_UNKNOWN;
+  enum cpu_vendor cpuVendor = B_CPU_VENDOR_UNKNOWN;
+
+  uint32 cpuModel = 0;
+
+  for (i = 0; i < (int)topology_count; i++) {
+
+    switch(topology_infos[i].type)
+    {
+      case B_TOPOLOGY_ROOT:
+          platform = topology_infos[i].data.root.platform;
+      break;
+
+      case B_TOPOLOGY_PACKAGE:
+          cpuVendor = topology_infos[i].data.package.vendor;
+      break;
+
+      default:
       break;
     }
+
+  }
+
+  sprintf(cpuStr,"%s %s", get_cpu_vendor_string(cpuVendor), get_cpu_model_string(platform, cpuVendor, cpuModel));
 
   uv__free(topology_infos);
 
@@ -153,8 +173,19 @@ int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
   *count = system.cpu_count;
 
   /* CPU time is not exposed by Haiku, neither does the model name. */
-  for (i = 0; i < (int)system.cpu_count; i++)
-    (*cpu_infos)[i].speed = (int)(cpuspeed / 1000000);
+  for (i = 0; i < (int)system.cpu_count; i++) {
+
+    cpu_info = &(*cpu_infos)[i];
+
+    cpu_info->cpu_times.user = 0;
+    cpu_info->cpu_times.nice = 0;
+    cpu_info->cpu_times.sys = 0;
+    cpu_info->cpu_times.idle = 0;
+    cpu_info->cpu_times.irq = 0;
+
+    cpu_info->model = uv__strdup(cpuStr);
+    cpu_info->speed = (int)get_rounded_cpu_speed();
+  }
 
   return 0;
 }
